@@ -1,4 +1,6 @@
 {
     "userspace_version": "1.0",
-    "build_targets": []
+    "build_targets": [
+        ["meletrix/zoom65_v3/ansi", "oz"]
+    ]
 }
