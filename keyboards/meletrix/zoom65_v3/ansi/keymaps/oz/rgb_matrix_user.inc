@@ -1,10 +1,12 @@
 RGB_MATRIX_EFFECT(DVD_LOGO)
 RGB_MATRIX_EFFECT(AUTO_SNAKE)
 RGB_MATRIX_EFFECT(AUTO_TETRIS)
+RGB_MATRIX_EFFECT(AUTO_LIFE)
 
 #ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
 #include "anim/layout.h"
 #include "anim/dvd.h"
 #include "anim/snake.h"
 #include "anim/tetris.h"
+#include "anim/life.h"
 #endif

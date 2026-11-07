@@ -23,3 +23,10 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [WIN_B] = { ENCODER_CCW_CW(KC_UP, KC_DOWN)  },
     [WIN_FN] = { ENCODER_CCW_CW(UG_HUED, UG_HUEU) },
 };
+
+void life_key_pressed(uint8_t row, uint8_t col);
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) life_key_pressed(record->event.key.row, record->event.key.col);
+    return true;
+}

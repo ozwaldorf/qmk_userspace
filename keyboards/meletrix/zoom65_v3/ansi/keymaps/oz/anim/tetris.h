@@ -1,9 +1,8 @@
 /* Self-playing tetris on a well lying on its side, pieces fall from the left and stack on the
- * right. The game runs on a plain grid of 1u cells. A key shows the cells whose centers it contains,
- * so every 1u key is exactly one cell and a wide key lights in proportion to its filled cells */
+ * right */
 
-#define TETRIS_LINES 16
-#define TETRIS_LANES 5
+#define TETRIS_LINES ANIM_COLS
+#define TETRIS_LANES ANIM_ROWS
 #define TETRIS_FULL_LINE ((1 << TETRIS_LANES) - 1)
 #define TETRIS_PIECES 7
 #define TETRIS_FLASH TETRIS_PIECES
@@ -239,12 +238,7 @@ static void tetris_compute_levels(uint16_t dt) {
 
     for (uint8_t l = 0; l < TETRIS_LINES; l++) {
         for (uint8_t r = 0; r < TETRIS_LANES; r++) {
-            uint8_t *level = &tetris_level[l][r];
-            if ((piece[l] & (1 << r)) || tetris_settled_lit(l, r)) {
-                *level = MIN(*level + up, 255);
-            } else {
-                *level = *level > down ? *level - down : 0;
-            }
+            anim_ease(&tetris_level[l][r], (piece[l] & (1 << r)) || tetris_settled_lit(l, r), up, down);
         }
     }
 }
@@ -274,31 +268,6 @@ static void tetris_update(effect_params_t *params) {
     tetris_compute_palette();
 }
 
-/* Averages the cells whose centers fall inside a key, line 0 is the rightmost column */
-static void tetris_paint_key(uint8_t led) {
-    anim_key_t key   = anim_keys[led];
-    uint8_t    first = (key.x - key.w / 2 + ANIM_UNIT / 2 - 1) / ANIM_UNIT;
-    uint8_t    end   = (key.x + key.w / 2 + ANIM_UNIT / 2 - 1) / ANIM_UNIT;
-    uint32_t   r = 0, g = 0, b = 0;
-    uint16_t   total = 0;
-
-    for (uint8_t l = first; l < end; l++) {
-        uint8_t level = tetris_level[TETRIS_LINES - 1 - l][key.row];
-        rgb_t   rgb   = tetris_palette[tetris_color[TETRIS_LINES - 1 - l][key.row]];
-        total += level;
-        r += (uint32_t)rgb.r * level;
-        g += (uint32_t)rgb.g * level;
-        b += (uint32_t)rgb.b * level;
-    }
-
-    if (total == 0) {
-        rgb_matrix_set_color(led, 0, 0, 0);
-    } else {
-        rgb_t mixed = {.r = r / total, .g = g / total, .b = b / total};
-        anim_set_scaled(led, mixed, total / (end - first));
-    }
-}
-
 static bool AUTO_TETRIS(effect_params_t *params) {
     RGB_MATRIX_USE_LIMITS(led_min, led_max);
 
@@ -306,7 +275,7 @@ static bool AUTO_TETRIS(effect_params_t *params) {
 
     for (uint8_t i = led_min; i < led_max; i++) {
         RGB_MATRIX_TEST_LED_FLAGS();
-        tetris_paint_key(i);
+        anim_paint_cells(i, tetris_level, tetris_color, tetris_palette);
     }
 
     return rgb_matrix_check_finished_leds(led_max);

@@ -110,3 +110,47 @@ static inline void anim_set_scaled(uint8_t led, rgb_t rgb, uint8_t level) {
     uint8_t duty = anim_gamma(level);
     rgb_matrix_set_color(led, scale8(rgb.r, duty), scale8(rgb.g, duty), scale8(rgb.b, duty));
 }
+
+/* Effects can run on a grid of 1u cells, with column 0 on the right. A key shows the cells whose
+ * centers it contains, so every 1u key is exactly one cell and a wide key lights in proportion to
+ * its lit cells */
+#define ANIM_COLS 16
+#define ANIM_ROWS 5
+
+/* Columns a key covers, as first and one past the last from the left */
+static inline uint8_t anim_key_first_cell(anim_key_t key) {
+    return (key.x - key.w / 2 + ANIM_UNIT / 2 - 1) / ANIM_UNIT;
+}
+static inline uint8_t anim_key_end_cell(anim_key_t key) {
+    return (key.x + key.w / 2 + ANIM_UNIT / 2 - 1) / ANIM_UNIT;
+}
+
+/* Move a level toward full or off */
+static inline void anim_ease(uint8_t *level, bool lit, uint16_t up, uint16_t down) {
+    *level = lit ? MIN(*level + up, 255) : *level > down ? *level - down : 0;
+}
+
+/* Set an LED to the average of its cells, each a level and a palette index */
+static void anim_paint_cells(uint8_t led, uint8_t levels[][ANIM_ROWS], uint8_t colors[][ANIM_ROWS], const rgb_t *palette) {
+    anim_key_t key   = anim_keys[led];
+    uint8_t    first = anim_key_first_cell(key);
+    uint8_t    end   = anim_key_end_cell(key);
+    uint32_t   r = 0, g = 0, b = 0;
+    uint16_t   total = 0;
+
+    for (uint8_t c = first; c < end; c++) {
+        uint8_t level = levels[ANIM_COLS - 1 - c][key.row];
+        rgb_t   rgb   = palette[colors[ANIM_COLS - 1 - c][key.row]];
+        total += level;
+        r += (uint32_t)rgb.r * level;
+        g += (uint32_t)rgb.g * level;
+        b += (uint32_t)rgb.b * level;
+    }
+
+    if (total == 0) {
+        rgb_matrix_set_color(led, 0, 0, 0);
+    } else {
+        rgb_t mixed = {.r = r / total, .g = g / total, .b = b / total};
+        anim_set_scaled(led, mixed, total / (end - first));
+    }
+}
